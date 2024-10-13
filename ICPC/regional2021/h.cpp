@@ -21,90 +21,133 @@ T chmin(T a, T b) {
 
 const int N = (int)1e5 + 1, M = N * 2;
 
-int dirx[4] = {1, -1, 0, 0};
-int diry[4] = {0, 0, 1, -1};
+int jpx[8] = {-2, -2, -1, -1, 1, 1, 2, 2}, jpy[8] = {-1, 1, -2, 2, -2, 2, -1, 1};
+
+int dirx[4] = {1, -1, 0, 0}, diry[4] = {0, 0, 1, -1};
 
 void solve(){
     int n, m;
     cin >> n >> m;
 
     char c[n][m];
-    vector<vector<int>> d(n, vector<int>(m, 0));
-
-    pair<int, int> st;
-
-    auto set = [&](int i, int j, int op) -> void{
-        if(i - 2 >= 0 && j - 1 >= 0) d[i - 2][j - 1] = op;
-        if(i - 2 >= 0 && j + 1 < m) d[i - 2][j + 1] = op;
-        if(i - 1 >= 0 && j - 2 >= 0) d[i - 1][j - 2] = op;
-        if(i - 1 >= 0 && j + 2 < m) d[i - 1][j + 2] = op;
-        if(i + 1 < n && j - 2 >= 0) d[i + 1][j - 2] = op;
-        if(i + 1 < n && j + 2 < m) d[i + 1][j + 2] = op;
-        if(i + 2 < n && j - 1 >= 0) d[i + 2][j - 1] = op;
-        if(i + 2 < n && j + 1 < m) d[i + 2][j + 1] = op;
-    };
+    vector<vector<int>> d(n, vector<int>(m, 0)), v(n, vector<int>(m, 0));
 
     for(int i = 0; i < n; i++){
         string s;
         cin >> s;
         for(int j = 0; j < m; j++){
+            v[i][j] = d[i][j] = 0;
             c[i][j] = s[j];
+        }
+    }
 
+    map<pair<int, int>, int> mp;
+    auto set = [&](int q, int p, int op) -> void{
+         for(int i = 0; i < 8; i++){
+            int x = q + jpx[i], y = p + jpy[i];
+            if(x < 0 || y < 0 || x >= n || y >= m){
+                continue;
+            }
+            d[x][y] += op;
+         }
+    };
+
+    queue<pair<int, int>> q;
+
+    for(int i = 0; i < n; i++){
+        for(int j = 0; j < m; j++){
             if(c[i][j] == 'R'){
-                st = {i, j};
+                q.push({i, j});
+                v[i][j] = 1;
             }
             if(c[i][j] == 'K'){
                 set(i, j, 1);
             }
         }
     }
+ 
+    // for(int i = 0; i < n; i++){
+    //     for(int j = 0; j < m; j++){
+    //         cout << d[i][j] << " ";
+    //     } cout << endl;
+    // }
 
-    while(1){
-        queue<pair<int, int>> q;
-        q.push(st);
+    while(!q.empty()){
+        auto p = q.front();
+        q.pop();
+        int x = p.first, y = p.second;
 
-        vector<vector<int>> vis(n + 1, vector<int>(m + 1, 0));
-        vector<pair<int, int>> hr;
-        vis[0][0] = 1;
+        queue<pair<int, int>> hr;
 
-        while(!q.empty()){
-            pair<int, int> p = q.front();
-            q.pop();
+        for(int i = 0; i < 4; i++){
+            int dx = x + dirx[i], dy = y + diry[i];
+            while(dx >= 0 && dy >= 0 && dx < n && dy < m){
+                if(v[dx][dy]){
 
-            int x = p.first, y = p.second;
-            for(int i = 0; i < 4; i++){
-                int dx = dirx[i] + x, dy = diry[i] + y;
-                if(dx < 0 || dy < 0 || dx >= n || dy >= m){
-                    continue;
                 }
-                if(vis[dx][dy] || d[dx][dy]){
-                    continue;
+                else if(d[dx][dy]){
+                    mp[{dx, dy}] = 1;
+                    if(c[dx][dy] == 'K'){
+                        break;
+                    }
                 }
-                vis[dx][dy] = 1;
-
-                if(c[dx][dy] == 'T'){
-                    cout << "yes" << endl;
-                    return;
+                else{
+                    if(c[dx][dy] == 'K'){
+                        hr.push({dx, dy});
+                        break;
+                    }
+                    else if(c[dx][dy] == 'T'){
+                        cout << "yes" << endl;
+                        return;
+                    }
+                    else{
+                        v[dx][dy] = 1;
+                        q.push({dx, dy});
+                        // cout << "first " << dx << " " << dy << " " << v[dx][dy] << endl;
+                    }
                 }
-                if(c[dx][dy] == 'K'){
-                    hr.pb({dx, dy});
-                    continue;
-                }
-                q.push({dx, dy});
+                dx += dirx[i], dy += diry[i];
             }
         }
+        // cout << q.size() << endl;
 
-        if(hr.size() == 0){
-            cout << "no" << endl;
-            return;
-        }
-        else{
-            for(auto p : hr){
-                c[p.first][p.second] = '.';
-                set(p.first, p.second, 0);
+        while(!hr.empty()){
+            auto kn = hr.front();
+            hr.pop();
+
+            int nx = kn.first, ny = kn.second;
+            c[nx][ny] = '.';
+            v[nx][ny] = 1;
+
+            q.push({nx, ny});
+            // cout << "second " << nx << " " << ny << endl;
+            set(nx, ny, -1);
+
+            for(int i = 0; i < 8; i++){
+                int dx = nx + jpx[i], dy = ny + jpy[i];
+                if(dx < 0 || dy < 0 || dx >= n || dy >= m) continue;
+                if(v[dx][dy]) continue;
+                if(!d[dx][dy] && mp[{dx, dy}]){
+                    mp[{dx, dy}] = 0;
+                    if(c[dx][dy] == 'K'){
+                        hr.push({dx, dy});
+                    }
+                    else{
+                        if(c[dx][dy] == 'T'){
+                            cout << "yes" << endl;
+                            return;
+                        }
+                        c[dx][dy] = '.';
+                        v[dx][dy] = 1;
+                        q.push({dx, dy});
+                        // cout << "third " << dx << " " << dy << endl;
+                    }
+                }
             }
         }
+        // cout << q.size() << endl;
     }
+    cout << "no" << endl;
 }
 
 int main() {
