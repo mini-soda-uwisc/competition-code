@@ -120,83 +120,59 @@ struct SegTree{
 };
 
 struct Mark{
-    void modify(const Mark &v){
+    int add;
 
+    Mark(int p = 0){
+        add = p;
+    }
+
+    void modify(const Mark &v){
+        if(v.add){
+            add ^= v.add;
+        }
     }
 };
 
 struct Operation {
-    int a[6];
-    Operation(int p = 114514){
-        for(int i = 0; i < 6; i++){
-            a[i] = 0;
+    int bits[64];
+
+    Operation(int p = -1){
+        for(int i = 0; i < 64; i++){
+            bits[i] = 0;
         }
-        if(p != 114514) {
-            a[p]++;
+
+        if(p >= 0){
+            bits[p]++;
         }
     }
 
     void modify(const Mark &v){
-
+        if(v.add){
+            int a[64];
+            for(int i = 0; i < 64; i++){
+                a[i] = 0;
+            } 
+            for(int i = 0; i < 64; i++){
+                // if(bits[i] > 0){
+                //     cout << (i ^ v.add) << " " << i << " " << bits[i] << " " << endl;
+                // }
+                a[i ^ v.add] += bits[i];
+                bits[i] = 0;
+            }
+            for(int i = 0; i < 64; i++){
+                bits[i] = a[i];
+            }
+        }
     }
 };
 
 Operation operator+(Operation a, Operation b){
     Operation c;
-    for(int i = 0; i < 6; i++){
-        c.a[i] += a.a[i] + b.a[i];
+    for(int i = 0; i < 64; i++){
+        c.bits[i] = a.bits[i] + b.bits[i];
     }
     return c;
 }
-
-template <typename T>
-struct Binom {
-public:
-    vector<Z<T>> ft;
-    vector<Z<T>> ift;
-
-    Binom(int n) : ft(n + 1), ift(n + 1) {
-        ft[0] = Z<T>(1);
-
-        for (int i = 1; i <= n; i++) {
-            ft[i] = ft[i - 1] * Z<T>(i);
-        }
-        ift[n] = Z<T>::inverse(ft[n]);
-
-        for (int i = n - 1; i >= 0; i--) {
-            ift[i] = ift[i + 1] * Z<T>(i + 1);
-        }
-        ift[0] = ift[1];
-    }
-
-    Z<T> operator()(int n, int r) const {
-        if (n < 0 || n >= ft.size() || r < 0 || r > n) return Z<T>(0);
-        return ft[n] * ift[n - r] * ift[r];
-    }
-
-    Z<T> comb(int n, int k) const {
-        if (k == 0) return Z<T>(1);
-        return (*this)(n, k);
-    }
-
-    Z<T> sumComb(int n) const {
-        return Z<T>::pow(Z<T>(2), n) - Z<T>(2);
-    }
-
-    Z<T> perm(int n, int k) const {
-        if (k == 0) return Z<T>(1);
-        return (*this)(n, k) * ft[k];
-    }
-
-    Z<T> fact(int n) const {
-        if (n == 0) return Z<T>(1);
-        return ft[n];
-    }
-
-    Z<T> cata(int n) const {
-        return (*this)(2 * n, n) / Z<T>(n + 1);
-    }
-};
 
 void solve(){
     string s;
@@ -206,9 +182,18 @@ void solve(){
     cin >> n;
 
     SegTree<Operation, Mark> tr(n + 1);
-    for(int i = 1; i <= n; i++){
-        tr.update(i, {s[i] - 'a'});
+    vector<int> t(s.length() + 2);
+
+    for(int i = 1; i <= s.length(); i++){
+        t[i] = t[i - 1] ^ (1 << s[i - 1] - 'a');
+        tr.update(i + 1, t[i]);
     }
+    tr.update(1, 0);
+
+    // for(int i = 0; i <= s.length(); i++){
+    //     cout << t[i] << " ";
+    // } cout << endl;
+
     for(int i = 0; i < n; i++){
         int op;
         cin >> op;
@@ -216,15 +201,27 @@ void solve(){
         if(op == 1){
             int l, r;
             cin >> l >> r;
-            auto p = tr.query(l, r);
 
+            auto p = tr.query(l, r + 1);
+            ll qwq = 0;
 
+            for(int j = 0; j < 64; j++){
+                // cout << p.bits[j] << " ";
+                qwq += p.bits[j] * 1ll * (p.bits[j] - 1) / 2;
+            } 
+            // cout << endl;
+            cout << qwq << endl;
         }
         else{
-            int id;
+            int x;
             char c;
-            cin >> id >> c;
-            tr.update(id, {c - 'a'});
+            cin >> x >> c;
+
+            char ch = s[x - 1];
+            int qwq = (1 << ch - 'a') ^ (1 << c - 'a');
+
+            s[x - 1] = c;
+            tr.range_update(x + 1, n + 1, qwq);
         }
     }
 }
@@ -238,7 +235,7 @@ int main() {
     cout.tie(nullptr);
 
     int t = 1;
-    cin >> t;
+    // cin >> t;
 
     while(t--){
         solve();
