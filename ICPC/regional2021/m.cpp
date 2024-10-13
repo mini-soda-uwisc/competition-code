@@ -12,8 +12,8 @@ const ll INF = 1e18;
 
 struct pair_hash {
     template<class T1, class T2>
-    std::size_t operator()(const std::pair<T1, T2> &pair) const {
-        return std::hash<T1>()(pair.first) ^ std::hash<T2>()(pair.second);
+    size_t operator()(const std::pair<T1, T2> &pair) const {
+        return hash<T1>()(pair.first) ^ hash<T2>()(pair.second);
     }
 };
 
@@ -40,70 +40,76 @@ vector<int> a;
 void solve() {
     cin >> n >> day_time >> total_days;
     a.resize(n);
-    total_time = day_time * total_days;
     for (int i = 0; i < n; ++i) {
         cin >> a[i];
-        total_training_time += a[i];
-    }
-    // 如果训练时间大于总时间，那么输出0，退出
-    if (total_training_time > total_time) {
-        cout << 0 << endl;
-        exit(0);
     }
 
-    // 开始枚举，找循环节
-//    int loop_time = 0;
-    int now_team = 0;
-    int loop_days = 0;
-    int loop_round = 0;
-    unordered_map<pair<int, int>, int, pair_hash> mp; // 匹配：当前队伍，剩余时间。 字典：当前天数
-//    vector<int> loop;
-    do {
-        int remain_day_time = day_time;
-        while (remain_day_time >= a[now_team]) {
-            remain_day_time -= a[now_team];
-//            loop_time += a[now_team];
-            // 实时输出当前队伍和剩余时间
-//            cout << "Current team: " << now_team << ", Remaining day time: " << remain_day_time << endl;
-            now_team++;
-//            loop.pb(a[now_team]);
-            if (now_team == n) {
-//                now_team = 0;
-                loop_round++;
-            }
-            now_team %= n;
-        }
-        mp.insert(make_pair(now_team, remain_day_time), loop_days);
-        loop_days++;
-//        cout << "End of day " << loop_days << ", Loop round: " << loop_round << endl;
-    } while (now_team != 0 && loop_days < total_days);
-//    cout << " Loop Round: " << loop_round << " Loop Days: " << loop_days << endl;
+    // Precompute cumulative sums of performance durations from each student to the end
+    vector<ll> cum(n + 1, 0);
+    for (int i = n - 1; i >= 0; --i) {
+        cum[i] = cum[i + 1] + a[i];
+    }
 
-    // 找到循环节，开始计算总共可以训练几轮
-    int total_round = total_days / loop_days * loop_round;
-    int left_days = total_days % loop_days;
-//    loop_time = 0;
-    now_team = 0;
-    loop_days = 0;
-    loop_round = 0;
-//    loop.clear();
-    do {
-        int remain_day_time = day_time;
-        while (remain_day_time >= a[now_team]) {
-            remain_day_time -= a[now_team];
-//            loop_time += a[now_team];
-            now_team++;
-//            loop.pb(a[now_team]);
-            if (now_team == n) {
-//                now_team = 0;
-                loop_round++;
+    ll passes_completed = 0;
+    int current_student = 0;
+    ll days = 0;
+    unordered_map<int, pair<ll, ll>> mp; // current_student -> (day, passes_completed)
+
+    while (days < total_days) {
+        // Check if we've been in this state before to detect cycles
+        if (mp.find(current_student) != mp.end()) {
+            ll prev_days = mp[current_student].first;
+            ll prev_passes = mp[current_student].second;
+            ll cycle_days = days - prev_days;
+            ll cycle_passes = passes_completed - prev_passes;
+            if (cycle_days == 0) {
+                // Avoid division by zero
+                break;
             }
-            now_team %= n;
+            ll cycles = (total_days - days) / cycle_days;
+            passes_completed += cycles * cycle_passes;
+            days += cycles * cycle_days;
+            if (days >= total_days) {
+                break;
+            }
         }
-        loop_days++;
-    } while (now_team != 0 && loop_days < left_days);
-//    cout << " Loop Round: " << loop_round << " Loop Days: " << loop_days << endl;
-    cout << loop_round + total_round << endl;
+        mp[current_student] = {days, passes_completed};
+
+        ll remaining_time = day_time;
+        int start_student = current_student;
+
+        // Try to complete the remaining performances in the current rehearsal pass
+        while (current_student < n && remaining_time >= a[current_student]) {
+            remaining_time -= a[current_student];
+            current_student++;
+        }
+
+        // Check if we've completed a rehearsal pass
+        if (current_student == n) {
+            passes_completed++;
+            current_student = 0;
+            // Try to start new rehearsal passes within the same day
+            // While we can complete a full rehearsal pass
+            ll full_passes = remaining_time / cum[0];
+            passes_completed += full_passes;
+            remaining_time -= full_passes * cum[0];
+
+            // Process any remaining performances after full passes
+            while (remaining_time >= a[current_student]) {
+                remaining_time -= a[current_student];
+                current_student++;
+                if (current_student == n) {
+                    passes_completed++;
+                    current_student = 0;
+                }
+            }
+        }
+
+        // If next performance cannot fit, move remaining performances to next day
+        days++;
+    }
+
+    cout << passes_completed << endl;
 }
 
 int main() {
