@@ -26,9 +26,7 @@
 
 朴素的暴力做法是找到这条链，然后从 `a` 开始计算
 
-$
-\text{sum} \times 10 \mod m + s_i
-$
+$\text{sum} \times 10 \mod m + s_i$
 
 直到 `b`。这样是会超时的。
 
@@ -38,13 +36,9 @@ $
 
 倍增公式为：
 
-$
-\text{f}[u][i + 1] = \left( \text{f}[u][i] \times (10^{2^{i}}) + \text{f}[v][i] \right) \mod m
-$
+$\text{f}[u][i + 1] = \left( \text{f}[u][i] \times (10^{2^{i}}) + \text{f}[v][i] \right) \mod m$
 
-$
-\text{up}[u][0] = \text{节点的数字}
-$
+$\text{up}[u][0] = \text{节点的数字}$
 
 最后查询两个节点的最近公共祖先，并分别讨论求下降路径合成数，倍增查询（参考以上初始化公式）求上升路径合成数。然后合并即可。
 
