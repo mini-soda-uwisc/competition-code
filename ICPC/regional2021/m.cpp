@@ -30,86 +30,79 @@ T chmin(T a, T b) {
 const int N = (int) 1e5 + 1, M = N * 2;
 
 int n;
-int day_time;
-int total_days;
-int total_time;
-int total_training_time = 0;
-
-vector<int> a;
+ll p, k;
+vector<ll> d;
 
 void solve() {
-    cin >> n >> day_time >> total_days;
-    a.resize(n);
-    for (int i = 0; i < n; ++i) {
-        cin >> a[i];
-    }
+    cin >> n >> p >> k;
+    d.resize(n);
+    for (int i = 0; i < n; ++i) cin >> d[i];
 
-    // Precompute cumulative sums of performance durations from each student to the end
-    vector<ll> cum(n + 1, 0);
+    // Precompute prefix sums for the durations
+    vector<ll> cum(n + 1, 0); // cum[i] = sum of d[i to n-1]
     for (int i = n - 1; i >= 0; --i) {
-        cum[i] = cum[i + 1] + a[i];
+        cum[i] = cum[i + 1] + d[i];
     }
 
-    ll passes_completed = 0;
-    int current_student = 0;
-    ll days = 0;
-    unordered_map<int, pair<ll, ll>> mp; // current_student -> (day, passes_completed)
+    ll total_passes = 0;
+    int pos = 0;
+    ll day = 0;
+    unordered_map<int, pair<ll, ll>> mp; // pos -> (day, total_passes)
 
-    while (days < total_days) {
-        // Check if we've been in this state before to detect cycles
-        if (mp.find(current_student) != mp.end()) {
-            ll prev_days = mp[current_student].first;
-            ll prev_passes = mp[current_student].second;
-            ll cycle_days = days - prev_days;
-            ll cycle_passes = passes_completed - prev_passes;
-            if (cycle_days == 0) {
-                // Avoid division by zero
+    while (day < k) {
+        if (mp.count(pos)) {
+            ll prev_day = mp[pos].first;
+            ll prev_passes = mp[pos].second;
+            ll cycle_length = day - prev_day;
+            ll cycle_passes = total_passes - prev_passes;
+            if (cycle_length == 0) {
+                // Cannot proceed further, break to prevent infinite loop
                 break;
             }
-            ll cycles = (total_days - days) / cycle_days;
-            passes_completed += cycles * cycle_passes;
-            days += cycles * cycle_days;
-            if (days >= total_days) {
-                break;
-            }
+            ll cycles = (k - day) / cycle_length;
+            total_passes += cycles * cycle_passes;
+            day += cycles * cycle_length;
+            if (day >= k) break;
         }
-        mp[current_student] = {days, passes_completed};
+        mp[pos] = {day, total_passes};
 
-        ll remaining_time = day_time;
-        int start_student = current_student;
+        ll remaining_time = p;
+        int start_pos = pos;
 
-        // Try to complete the remaining performances in the current rehearsal pass
-        while (current_student < n && remaining_time >= a[current_student]) {
-            remaining_time -= a[current_student];
-            current_student++;
-        }
+        // Try to complete the rest of the current rehearsal pass
+        ll time_needed = cum[pos];
+        if (time_needed <= remaining_time) {
+            // Complete the current pass
+            remaining_time -= time_needed;
+            total_passes += 1;
+            pos = 0;
 
-        // Check if we've completed a rehearsal pass
-        if (current_student == n) {
-            passes_completed++;
-            current_student = 0;
-            // Try to start new rehearsal passes within the same day
-            // While we can complete a full rehearsal pass
+            // Complete as many full passes as possible
             ll full_passes = remaining_time / cum[0];
-            passes_completed += full_passes;
+            total_passes += full_passes;
             remaining_time -= full_passes * cum[0];
 
-            // Process any remaining performances after full passes
-            while (remaining_time >= a[current_student]) {
-                remaining_time -= a[current_student];
-                current_student++;
-                if (current_student == n) {
-                    passes_completed++;
-                    current_student = 0;
+            // Perform additional performances if possible
+            while (remaining_time >= d[pos]) {
+                remaining_time -= d[pos];
+                pos += 1;
+                if (pos == n) {
+                    total_passes += 1;
+                    pos = 0;
                 }
             }
+        } else {
+            // Cannot complete the current pass, perform as many as possible
+            while (pos < n && remaining_time >= d[pos]) {
+                remaining_time -= d[pos];
+                pos += 1;
+            }
+            // Remaining performances are moved to the next day
         }
-
-        // If next performance cannot fit, move remaining performances to next day
-        days++;
+        day += 1;
     }
 
-    cout << passes_completed << endl;
+    cout << total_passes << endl;
 }
 
 int main() {
