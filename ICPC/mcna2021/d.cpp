@@ -276,7 +276,52 @@ struct Point{
 };
 
 void solve(){
+    cin >> n;
 
+    vector<Point<ld>> b;
+    int id = 0;
+
+    Point<ld> p;
+
+    for(int i = 0; i < n; i++){
+        ld x, y;
+        cin >> x >> y;
+        b.pb({x, y});
+    }
+
+    ld area = 0;
+    for(int i = 2; i < b.size(); i++){
+        area += fabs(p.cross(b[0], b[i - 1], b[i]) / 2);
+    }
+
+    ld min = INF, qwq = 0;
+    for(int i = 2; i < b.size(); i++){
+        qwq += fabs(p.cross(b[0], b[i - 1], b[i]) / 2);
+        if(p.cmp(qwq, area / 2)){
+            cout << b[i] << endl;
+            return;
+        }
+        else if(qwq > area / 2){
+            id = i;
+            break;
+        }
+    }
+//    cout << id << endl;
+
+    ld areaL = 0, areaR = 0;
+    for(int i = 2; i < id; i++){
+        areaL += fabs(p.cross(b[0], b[i - 1], b[i]) / 2);
+    }
+    for(int i = b.size() - 2; i >= id; i--){
+        areaR += fabs(p.cross(b[0], b[i], b[i + 1]) / 2);
+    }
+
+    Point<ld> l = b[id - 1], r = b[id];
+    ld L = p.point_dist(l, r) / 2, h = p.line_dist(l, r, b[0]);
+    ld S = (areaR - areaL) / h + L;
+
+    Point<ld> vec = (r - l) / p.point_dist(l, r);
+    cout << setprecision(20) << l + vec * S << endl;
 }
 
 int main() {
