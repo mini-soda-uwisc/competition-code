@@ -1,7 +1,8 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-const int N = 110, M = 50010;
+// these 2 numbers are from other's success. SO WHAT THE HELL THEY ARE???
+const int N = 100010, M = 1000010;
 
 int hed[N], to[M], nxt[M], edcnt;
 inline void ADD(int x, int y) {
@@ -22,16 +23,30 @@ inline int getQ(int x) {
 }
 
 char ans[N];
-
 int vis[N];
-int dfs(int x, int fa) {
+
+
+void dfs_erase(int x, int dfn) {
+    int q = getQ(x);
+    ans[q] = '\0';
+    vis[x] = 0;
+
+    for (int i = hed[x]; i; i = nxt[i]) {
+        int y = to[i];
+        if (vis[y] != dfn) continue;
+        dfs_erase(y, dfn);
+    }
+}
+
+
+int dfs(int x, int fa, int dfn) {
     int q = getQ(x);
     if (ans[q]) {
         if (x == T(q)) return ans[q] == 'T';
         else return ans[q] == 'F';
     }
 
-    vis[x] = 1;
+    vis[x] = dfn;
     if (x == T(q)) ans[q] = 'T';
     else ans[q] = 'F';
 
@@ -41,16 +56,19 @@ int dfs(int x, int fa) {
         int y = to[i];
 
         if (vis[y]) continue;
-        flag &= dfs(y, x);
+        flag &= dfs(y, x, dfn);
+        if (!flag) break;
     }
 
     if (!flag) {
-        ans[q] = '\0';
+        dfs_erase(x, dfn);
         return 0;
     }
 
     return 1;
 }
+
+
 
 int main() {
     ios::sync_with_stdio(false);
@@ -81,12 +99,13 @@ int main() {
             }
         }
     }
+    int Index = 0;
 
     for (int i = 1; i <= k; ++i) {
         if (!ans[i]) {
-            if (dfs(F(i), 0)) {
+            if (dfs(F(i), 0, ++Index)) {
                 continue;
-            } else if (dfs(T(i), 0)) {
+            } else if (dfs(T(i), 0, ++Index)) {
                 continue;
             } else {
                 cout << "-1\n";
