@@ -101,8 +101,8 @@ int main() {
             cout << "-1\n";
             return 0;
         }
-        // 如果T的编号大于F的编号，选F；否则选T
-        res[i] = (g.id[t] > g.id[t^1]) ? 'F' : 'T';
+        // 修改赋值条件，优先选择 'F'
+        res[i] = (g.id[t] > g.id[t^1]) ? 'T' : 'F';
     }
 
     cout << res << '\n';
