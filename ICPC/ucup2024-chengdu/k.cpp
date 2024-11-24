@@ -1,8 +1,8 @@
 #include <bits/stdc++.h>
 using namespace std;
+
 using ll = long long;
 using ld = long double;
-
 #define pb push_back
 
 const ld pi = 3.14159265358979323846;
@@ -32,7 +32,6 @@ struct CostFlow {
     vector<E> pre, h, ne, e;
     vector<T> d, f, w, incf;
     vector<V> st;
-
     V rev;
 
     CostFlow(E n, E m, E s, E t, T INF): n(n), m(m), INF(INF), s(s), t(t){
@@ -46,6 +45,7 @@ struct CostFlow {
         while(spfa()){
             T tmp = incf[t];
             cost += d[t] * tmp;
+
             for(E i = t; i != s; i = e[pre[i] ^ 1]){
                 f[pre[i]] -= tmp;
                 f[pre[i] ^ 1] += tmp;
@@ -53,7 +53,6 @@ struct CostFlow {
         }
         return rev ? -cost : cost;
     }
-
     void reverse(){
         for(E i = 0; i < id; i += 2){
             f[i] += f[i ^ 1];
@@ -78,10 +77,12 @@ struct CostFlow {
             st[u] = 0;
             for(E i = h[u]; i != -1; i = ne[i]){
                 E v = e[i];
+
                 if(f[i] > 0 && d[v] > d[u] + w[i]){
                     d[v] = d[u] + w[i];
                     pre[v] = i;
                     incf[v] = chmin(incf[u], f[i]);
+
                     if(!st[v]){
                         q.push(v);
                         st[v] = 1;
@@ -98,70 +99,98 @@ struct CostFlow {
     }
 };
 
+map<int, map<int, int>> vis, rec;
+map<int, int> mp, d, p;
+int n;
+
+void dfs1(int x, int fa, CostFlow<int>& fl, int dep){
+    if(x <= 1) return;
+    for(int i = 1; i * i <= x; i++){
+        if(x % i == 0){
+            if(vis[fa][i] < dep){
+                vis[fa][i] = vis[i][fa] = dep;
+                dfs1(i, fa, fl, dep + 1);
+            }
+            if(i != 1 && i != x / i){
+                if(vis[fa][x / i] < dep){
+                    vis[fa][x / i] = vis[x / i][fa] = dep;
+                    dfs1(x / i, fa, fl, dep + 1);
+                }
+            }
+        }
+    }
+}
+
+void dfs2(int x, int fa, CostFlow<int>& fl){
+    if(p[x]) return;
+    mp[x] = p[x] = 1;
+  
+    for(int i = 1; i * i <= x; i++){
+        if(x % i == 0){
+            dfs2(i, fa, fl);
+
+            if(!rec[fa][i]){
+                rec[fa][i] = rec[i][fa] = 1;
+                fl.add(d[fa], d[i], n, vis[fa][i]);
+            }
+
+            if(i != 1 && i != x / i){
+                dfs2(x / i, fa, fl);
+
+                if(!rec[fa][x / i]){
+                    rec[fa][x / i] = rec[x / i][fa] = 1;
+                    fl.add(d[fa], d[x / i], n, vis[fa][x / i]);
+                }
+            }
+        }
+    }
+}
+
 void solve() {
-    int n;
     cin >> n;
 
-    vector<int> a(n), o(n);
+    vector<int> a(n), b(n);
     for (int i = 0; i < n; i++) {
         cin >> a[i];
-        o[i] = a[i];
     }
 
     int S = N, T = S + 1, V = T + 1;
     CostFlow<int> fl(N + 10, N + 10, S, V, (int)1e9);
 
-    map<int, map<int, int>> vis;
-    map<int, int> mp, d;
-
     for(int i = 0; i < n; i++){
         for(int j = 1; j * j <= a[i]; j++){
             if(a[i] % j == 0){
-                a.pb(a[i] / j);
-                a.pb(j);
+                b.pb(a[i] / j);
+                b.pb(j);
             }
         }
     }
 
-    sort(a.begin(), a.end());
-    a.erase(unique(a.begin(), a.end()), a.end());
+    sort(b.begin(), b.end());
+    b.erase(unique(b.begin(), b.end()), b.end());
 
-    for(int i = 0; i < a.size(); i++){
-        d[a[i]] = i + 1;
+    for(int i = 0; i < b.size(); i++){
+        d[b[i]] = i + 1;
     }
 
     for (int i = 0; i < n; i++) {
-        fl.add(S, d[o[i]], 1, 0);
+        fl.add(S, d[a[i]], 1, 0);
     }
 
-    reverse(a.begin(), a.end());
     mp[1] = 1;
-
-    for (int i = 0; i < a.size(); i++){
-        if(a[i] == 1) continue;
-        mp[a[i]] = 1;
-
-        for (int j = 1; j * j <= a[i]; j++) {
-            if (a[i] % j == 0) {
-                if(!vis[a[i]][j]) {
-                    vis[a[i]][j] = vis[j][a[i]] = 1;
-                    fl.add(d[a[i]], d[j], n, 1);
-                }
-                if (j != 1 && j != a[i] / j) {
-                    if(!vis[a[i]][a[i] / j]) {
-                        vis[a[i]][a[i] / j] = vis[a[i] / j][a[i]] = 1;
-                        fl.add(d[a[i]], d[a[i] / j], n, 1);
-                    }
-                }
-            }
-        }
+    for(int i = 0; i < n; i++){
+        vis.clear();
+        rec.clear();
+        p.clear();
+        dfs1(a[i], a[i], fl, 1);
+        dfs2(a[i], a[i], fl);
     }
 
     for(auto [x, y] : mp){
         fl.add(d[x], T, 1, 0);
     }
-    fl.add(T, V, n, 0);
 
+    fl.add(T, V, n, 0);
     fl.reverse();
     cout << fl.EK() << endl;
 }
@@ -180,6 +209,5 @@ int main() {
     while(t--){
         solve();
     }
-
     return 0;
 }
