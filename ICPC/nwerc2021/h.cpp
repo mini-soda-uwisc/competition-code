@@ -91,7 +91,7 @@ struct DSU{
         return merge(x, y);
     }
  
-    int get(int x){
+    ll get(int x){
         return val[find(x)];
     }
 };
@@ -101,32 +101,35 @@ void solve(){
     cin >> n;
 
     ll a[n];
+    vector<pair<ll, int>> q;
     for (int i = 0; i < n; i++) {
         cin >> a[i];
+        q.pb({a[i], i});
     }
+
+    sort(q.begin(), q.end());
 
     ll l = 0, r = *max_element(a, a + n);
     while (l < r) {
         ll mid = l + r >> 1;
         DSU dsu(n + 1);
 
-        priority_queue<pair<ll, int>, vector<pair<ll, int>>, greater<>> q;
+        
         for (int i = 0; i < n; i++) {
-            q.push({a[i], i});
             dsu.l[i] = (i - 1 + n) % n;
             dsu.r[i] = (i + 1) % n;
             dsu.val[i] = a[i];
         }
 
         int owo = 0;
-        while (!q.empty()) {
-            auto p = q.top();
-            q.pop();
+        for(int i = 0; i < q.size(); i++){
+            auto p = q[i];
 
             ll x = p.first;
             int id = p.second;
             if (x <= mid) {
                 for (int i = (id - 1 + n) % n, j = (id + 1) % n; ; ) {
+                    // cout << mid << " " << dsu.get(id) << " " << dsu.get(i) << " " << dsu.set(i, id) << endl;
                     if (dsu.get(i) <= dsu.get(id) + mid && !dsu.set(i, id)) {
                         int L = dsu.l[dsu.find(i)];
                         dsu.merge(id, i);
@@ -143,7 +146,7 @@ void solve(){
                     }
                 }
             }
-            owo = (dsu.find(id) == n);
+            owo = (dsu.size[dsu.find(id)] == n);
             if (owo) {
                 break;
             }
