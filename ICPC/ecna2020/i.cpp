@@ -23,7 +23,7 @@ T chmin(T a, T b) {
     return a > b ? b : a;
 }
 
-const int N = (int)1e4 + 1, M = N * 2;
+const int N = (int)2e6 + 1, M = N * 2;
 
 template<typename T>
 struct Point{
@@ -175,20 +175,6 @@ struct Point{
         return (b.y - a.y) / (b.x - a.x);
     }
 
-    T circle_intersect(const Point& p1, const Point& p2, const T r1, const T r2){
-        ld d = sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
-
-        if(d > r1 + r2 || d + chmin(r1, r2) <= chmax(r1, r2)){
-            return 0;
-        }
-        else if(d == r1 + r2){
-            return 1;
-        }
-        else{
-            return 2;
-        }
-    }
-
     T seg_dist(const Point& a, const Point& b, const Point& p){
         if(a == b){
             return get_len(p - a);
@@ -221,54 +207,8 @@ struct Point{
         return sign(c1) * sign(c2) <= 0 && sign(c3) * sign(c4) <= 0;
     }
 
-    vector<Point> get_circle_intersection(const Point& p1, const Point& p2, const T r1, const T r2){
-        ld d = sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
-
-        Point bv = {(p2.x - p1.x) / d, (p2.y - p1.y) / d};
-
-        if(d >= r1 + r2){
-            return {};
-        }
-        else if(d + chmin(r1, r2) <= chmax(r1, r2)){
-            return {};
-        }
-        else{
-            Point<T> center;
-            ld a = (r1 * r1 - r2 * r2 + d * d) / (2 * d);
-            ld b = (r2 * r2 - r1 * r1 + d * d) / (2 * d);
-
-            center.x = p1.x + a * bv.x;
-            center.y = p1.y + a * bv.y;
-
-            ld h = sqrt(r1 * r1 - a * a);
-            Point it1 = {center.x + h * bv.y, center.y - h * bv.x};
-            Point it2 = {center.x - h * bv.y, center.y + h * bv.x};
-
-            return {it1, it2};
-        }
-    }
-
-    T angle_centroid(Point centroid, Point p){ // 计算两个点的角度
-        return atan2(p.y - centroid.y, p.x - centroid.x);
-    }
-
-    Point get_centroid(const vector<Point>& p) {
-        Point centroid = {0, 0};
-        for (const auto& pt : p) {
-            centroid.x += pt.x;
-            centroid.y += pt.y;
-        }
-
-        centroid.x /= p.size();
-        centroid.y /= p.size();
-        return centroid;
-    }
-
-    void sort_cw(vector<Point>& p) {
-        Point centroid = get_centroid(p);
-        sort(p.begin(), p.end(), [&](const Point& a, const Point& b) {
-            return angle_centroid(centroid, a) < angle_centroid(centroid, b);
-        });
+    friend bool operator<(const Point& a, const Point& b) {
+        return (a.x < b.x) || (a.x == b.x && a.y < b.y);
     }
 
     friend std::ostream &operator<<(ostream &os, Point p) {
@@ -286,89 +226,134 @@ void solve() {
     int n;
     cin >> n;
 
-    vector<pair<Point<double>, Point<double>>> a;
-    map<pair<double, double>, int> mp;
-    map<int, pair<double, double>> rf;
+    vector<pair<Point<ld>, Point<ld>>> a;
+    for(int i = 0; i < n; i++){
+        int x1, y1, x2, y2;
+        cin >> x1 >> y1 >> x2 >> y2;
+        a.pb({Point<ld>(x1, y1), Point<ld>(x2, y2)});
+    }
+
+    ld x, y, v;
+    cin >> x >> y >> v;
+
+    ld dx1, dy1, dx2, dy2, vf;
+    cin >> dx1 >> dy1 >> dx2 >> dy2 >> vf;
+    
+    a.pb({Point<ld>(dx1, dy1), Point<ld>(dx2, dy2)});
+
+    vector<Point<ld>> b[a.size()];
+    vector<Point<ld>> vec;
+    Point<ld> p;
+
+    map<Point<ld>, int> mp;
+    map<int, Point<ld>> rv;
     int id = 0;
 
-    auto mapp = [&](int x, int y) -> void {
-        if (!mp.count({x, y})) {
-            rf[id] = {x, y};
-            mp[{x, y}] = id++;
+    auto join = [&](Point<ld> point){
+        if(!mp.count(point)){
+            rv[id] = point;
+            mp[point] = id++;
         }
     };
 
-    for (int i = 0; i < n; i++) {
-        double x1, y1, x2, y2;
-        cin >> x1 >> y1 >> x2 >> y2;
-        a.pb({Point<double>(x1, y1), Point<double>(x2, y2)});
-        mapp(x1, y1);
-        mapp(x2, y2);
+    for(int i = 0; i < n; i++){
+        auto p1 = a[i].first, p2 = a[i].second;
+        if(Point<ld>(x, y).on_segment(p1, p2, Point<ld>(x, y))){
+            b[i].pb(Point<ld>(x, y));
+            join(Point<ld>(x, y));
+        }
     }
 
-    double x, y, v;
-    cin >> x >> y >> v;
-    mapp(x, y);
-    a.pb({Point<double>(x, y), Point<double>(x, y)});
+    for(int i = 0; i < a.size(); i++){
+        auto p1 = a[i].first, p2 = a[i].second;
+        b[i].pb(p1), b[i].pb(p2);
+        join(p1), join(p2);
 
-    double sx, sy, ex, ey, vf;
-    cin >> sx >> sy >> ex >> sy >> vf;
-    mapp(sx, sy);
-    mapp(ex, ey);
+        for(int j = i + 1; j < a.size(); j++){
+            auto q1 = a[j].first, q2 = a[j].second;
+            join(q1), join(q2);
+            auto pt = p.intersect(p1, p2 - p1, q1, q2 - q1);
+              
+            if(p.seg_intersection(p1, p2, q1, q2)){
+                // cout << pt << endl;
+                join(pt);
 
-    a.pb({Point<double>(sx, sy), Point<double>(ex, ey)});
-    vector<Point<double>> ans;
+                b[i].pb(pt);
+                b[j].pb(pt);
 
-    for (int i = 0; i < a.size(); i++) {
-        for (int j = i + 1; j < a.size(); j++) {
-            Point<double> p;
-            auto pt = p.intersect(a[i].first, a[i].second, a[j].first, a[j].second);
-            mapp(pt.x, pt.y);
-            add(mp[{pt.x, pt.y}], mp[{a[i].first.x, a[i].first.y}]);
-            add(mp[{pt.x, pt.y}], mp[{a[i].second.x, a[i].second.y}]);
-            add(mp[{pt.x, pt.y}], mp[{a[j].first.x, a[j].first.y}]);
-            add(mp[{pt.x, pt.y}], mp[{a[j].second.x, a[j].second.y}]);
-
-            if (i == a.size() - 1 || j == a.size() - 1) {
-                ans.pb(pt);
+                if(j == a.size() - 1){
+                    vec.pb(pt);
+                }
             }
         }
     }
 
-    priority_queue<pair<double, int>, vector<pair<double, int>>, greater<>> q;
-    q.push({0, mp[{x, y}]});
+    for(int i = 0; i <= 2 * id; i++){
+        h[i] = -1;
+    }
+    idx = 0;
 
-    double dp[N];
-    fill_n(dp, N, INF);
-    dp[mp[{x, y}]] = 0;
+    Point<ld> p1, p2;
+    auto cmp = [&](const Point<ld>& a, const Point<ld>& b) -> bool {
+        ld t1 = ((a.x - p1.x) * (p2.x - p1.x) + (a.y - p1.y) * (p2.y - p1.y));
+        ld t2 = ((b.x - p1.x) * (p2.x - p1.x) + (b.y - p1.y) * (p2.y - p1.y));
+        return t1 < t2;
+    };
 
-    Point<double> pt;
-    vector<int> vs(N);
-    while (!q.empty()) {
-        auto p = q.top();
+   for(int i = 0; i < n; i++){
+        p1 = a[i].first, p2 = a[i].second;
+        sort(b[i].begin(), b[i].end(), cmp);
+        for (int j = 1; j < b[i].size(); j++){
+            add(mp[b[i][j - 1]], mp[b[i][j]]);
+            add(mp[b[i][j]], mp[b[i][j - 1]]);
+        }
+    }
+
+    priority_queue<pair<ld, int>, vector<pair<ld, int>>, greater<>> q;
+    q.push({0, mp[Point<ld>(x, y)]});
+
+    vector<ld> dp(id + 1, INF);
+    vector<int> vs(id + 1);
+    dp[mp[Point<ld>(x, y)]] = 0;
+ 
+    while(!q.empty()){
+        auto pair = q.top();
         q.pop();
 
-        int u = p.second;
-        if (vs[u]) {
+        int u = pair.second;
+        auto p1 = rv[u];
+        if(vs[u]){
             continue;
         }
         vs[u] = 1;
-        for (int i = h[u]; i; i = ne[i]) {
+
+        for(int i = h[u]; i != -1; i = ne[i]){
             int j = e[i];
-            Point<double> a = {rf[u].first, rf[u].second};
-            Point<double> b = {rf[j].first, rf[j].second};
-            if (dp[j] > dp[u] + pt.point_dist(a, b)) {
-                dp[j] = dp[u] + pt.point_dist(a, b);
+            auto p2 = rv[j];
+            if(dp[j] > dp[u] + p.point_dist(p1, p2)){
+                dp[j] = dp[u] + p.point_dist(p1, p2);
                 q.push({dp[j], j});
             }
         }
     }
-
-    double qwq = INF;
-    for(auto point : ans){
-        qwq = chmin(qwq, dp[mp[{point.x, point.y}]]);
+ 
+    ld qwq = INF;
+    for(auto P : vec){
+        int u = mp[P];
+        ld df = p.point_dist(Point<ld>(dx1, dy1), P);
+        ld ds = dp[u];
+      
+        if(df * v >= ds * vf){
+            qwq = chmin(qwq, chmax(df / vf, ds / v));
+        }
     }
-    cout << qwq << endl;
+
+    if(qwq == INF){
+        cout << -1 << endl;
+    }
+    else{
+        cout << setprecision(20) << qwq << endl;
+    }
 }
 
 int main(){
