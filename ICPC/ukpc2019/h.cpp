@@ -21,7 +21,7 @@ T chmin(T a, T b) {
 
 const int N = (int)1e5 + 1, M = N * 2;
 
-bool cmp(pair<int, int>& x, pair<int, int>& y) {
+bool cmp(const pair<int, int>& x, const pair<int, int>& y) {
     return x.second > y.second;
 }
 
@@ -39,9 +39,11 @@ void solve() {
         hook[i] = i + 2;
     }
     // for (int h : hook) {
-    //     cout << h << '\n';
+    //     cerr << h << ' ';
     // }
+    // cerr << '\n';
 
+    // make sure seq[0] == 1
     if (seq[0] != 1) {
         what_the_hell = seq[0];
         for (int i = 0; i < k; ++i) {
@@ -56,21 +58,37 @@ void solve() {
     // for (int i = 0; i < k; ++i) {
     //     cerr << seq[i] << " \n"[i == n - 1];
     // }
+    // cerr << '\n';
 
-    int sum = 0;
+    ll sum = 0;
     int now = seq[0];
     vector<int> hook_sum(n - 1);
+
+    unordered_map<int, int> hook_pos;
+    hook_pos.reserve(n * 2);
+    for (int i = 0; i < n - 1; ++i) {
+        hook_pos[hook[i]] = i;
+    } // hat -> pos
+
     for (int i = 1; i < k; i++) {
         int nxt = seq[i];
-        // cout << "next to be: " << nxt << '\n';
-        for (int j = 0; j < n - 1; j++) {
-            // cout << "find (" << nxt << ") on hook (" << j << "), which is (" << hook[j] << ")\n";
-            if (hook[j] == nxt) {
-                swap(now, hook[j]);
-                sum += j + 1;
-                hook_sum[j]++;
-            }
+        if (nxt == now) {
+            // same hat, no need to swap
+            continue;
         }
+        int j = hook_pos[nxt];
+        // cout << "next to be: " << nxt << '\n';
+
+        int old = now;
+        swap(now, hook[j]); // swap hat
+        // record result
+        hook_sum[j]++;
+        sum += j + 1;
+        // cout << "find (" << nxt << ") on hook (" << j << "), which is (" << hook[j] << ")\n";
+
+        // update pos
+        hook_pos[old] = j;
+        hook_pos[now] = -1; // not on hook
     }
     // cout << sum << '\n';
 
@@ -85,18 +103,28 @@ void solve() {
     for (int i = 0; i < n - 1; ++i) {
         hook[i] = ans[i].first;
     }
+    hook_pos.clear(); // reset pos
+    for (int i = 0; i < n - 1; ++i) {
+        hook_pos[hook[i]] = i;
+    } // hat -> pos
 
     for (int i = 1; i < k; i++) {
         int nxt = seq[i];
         // cout << "next to be: " << nxt << '\n';
-        for (int j = 0; j < n - 1; j++) {
-            // cout << "find (" << nxt << ") on hook (" << j << "), which is (" << hook[j] << ")\n";
-            if (hook[j] == nxt) {
-                swap(now, hook[j]);
-                sum += j + 1;
-                hook_sum[j]++;
-            }
+        if (nxt == now) {
+            // same hat, no need to swap
+            continue;
         }
+        int j = hook_pos[nxt];
+
+        int old = now;
+        swap(now, hook[j]); // swap hat
+        sum += j + 1;
+        // cout << "find (" << nxt << ") on hook (" << j << "), which is (" << hook[j] << ")\n";
+
+        // update pos
+        hook_pos[old] = j;
+        hook_pos[now] = -1; // not on hook
     }
     cout << sum << '\n';
 
