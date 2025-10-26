@@ -77,8 +77,6 @@ void solve() {
         const int pge_num = getPgeNum(x);
         pge.emplace(getPgeNum(x));
         pre_sel[pge_num].emplace(x);
-        pge_min = min(pge_min, pge_num);
-        pge_max = max(pge_max, pge_num);
     }
     for (int i = 0; i < itm_want_sum; ++i) {
         int x;
@@ -86,8 +84,6 @@ void solve() {
         const int pge_num = getPgeNum(x);
         pge.emplace(pge_num);
         want[pge_num].emplace(x);
-        pge_min = min(pge_min, pge_num);
-        pge_max = max(pge_max, pge_num);
     }
 
     int ans = 0;
@@ -101,7 +97,12 @@ void solve() {
         int arr[] = {deselectAllAndSelect(p), selectAllAndDeselect(p), deselectAndSelect(p)};
         // for (int i = 0; i < 3; ++i) cout << arr[i] <<' ';
         // cout << '\n';
-        ans += *min_element(arr, arr + 3);
+        int sxc = *min_element(arr, arr + 3);
+        ans += sxc;
+        if (sxc != 0) {
+            pge_min = min(pge_min, p);
+            pge_max = max(pge_max, p);
+       }
     }
 
     // cout << ans << '\n';
